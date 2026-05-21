@@ -7,7 +7,7 @@ const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GROQ_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
@@ -62,19 +62,20 @@ app.post("/api/chat", async (req, res) => {
   res.setHeader("Connection", "keep-alive");
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
+        "Authorization": `Bearer ${GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
+        model: "llama-3.3-70b-versatile",
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
         stream: true,
-        messages: recentMessages
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          ...recentMessages
+        ]
       })
     });
 
@@ -99,9 +100,10 @@ app.post("/api/chat", async (req, res) => {
           if (data === "[DONE]") continue;
           try {
             const parsed = JSON.parse(data);
-            if (parsed.type === "content_block_delta" && parsed.delta?.text) {
-              fullReply += parsed.delta.text;
-              res.write(`data: ${JSON.stringify({ chunk: parsed.delta.text })}\n\n`);
+            const text = parsed.choices?.[0]?.delta?.content;
+            if (text) {
+              fullReply += text;
+              res.write(`data: ${JSON.stringify({ chunk: text })}\n\n`);
             }
           } catch {}
         }
