@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 const GROQ_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 app.use(helmet({ contentSecurityPolicy: false }));
