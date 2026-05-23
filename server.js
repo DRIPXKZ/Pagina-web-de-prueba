@@ -26,18 +26,41 @@ app.use("/api/chat", limiter);
 
 app.post("/api/session", (req, res) => {
   const sessionId = uuidv4();
-  sessions.set(sessionId, { messages: [], createdAt: Date.now(), messageCount: 0 });
+  sessions.set(sessionId, {
+    messages: [],
+    createdAt: Date.now(),
+    messageCount: 0,
+    userName: null,
+    language: "es",
+    preferences: {}
+  });
   for (const [id, s] of sessions.entries()) {
     if (Date.now() - s.createdAt > 7200000) sessions.delete(id);
   }
   res.json({ sessionId });
 });
 
-const SYSTEM_PROMPT = `Eres Drip IA, una inteligencia artificial amigable, inteligente y útil.
-Respondes siempre en el idioma en que te hablan (español por defecto).
+// Guardar nombre/preferencias del usuario
+app.post("/api/preferences", (req, res) => {
+  const { sessionId, userName, language } = req.body;
+  if (!sessionId || !sessions.has(sessionId))
+    return res.status(400).json({ error: "Sesión inválida." });
+  const session = sessions.get(sessionId);
+  if (userName) session.userName = userName;
+  if (language) session.language = language;
+  res.json({ ok: true });
+});
+
+const SYSTEM_PROMPT = (userName, language) => `Eres Drip IA, una inteligencia artificial amigable, inteligente y útil.
+${userName ? `El usuario se llama ${userName}. Úsalo para personalizar tus respuestas y dirigirte a él por su nombre ocasionalmente.` : ""}
+Idioma principal: ${language === "en" ? "inglés" : language === "fr" ? "francés" : "español"}.
+Responde SIEMPRE en el idioma en que te habla el usuario.
 Eres directa, clara y concisa. Tienes personalidad: eres cálida pero cool, curiosa e ingeniosa.
+Escribe con ortografía perfecta. Usa tildes correctamente en español.
 Cuando no sabes algo, lo admites honestamente.
-IMPORTANTE: Siempre escribe con ortografía perfecta en español. Usa tildes correctamente. Nunca cometas errores ortográficos.`;
+Al final de cada respuesta, cuando sea natural, sugiere 2-3 preguntas de seguimiento relevantes en formato:
+[SUGERENCIAS: pregunta1 | pregunta2 | pregunta3]`;
+
 app.post("/api/chat", async (req, res) => {
   const { message, sessionId } = req.body;
 
@@ -73,7 +96,7 @@ app.post("/api/chat", async (req, res) => {
         max_tokens: 1024,
         stream: true,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: SYSTEM_PROMPT(session.userName, session.language) },
           ...recentMessages
         ]
       })
@@ -111,6 +134,14 @@ app.post("/api/chat", async (req, res) => {
     }
 
     if (fullReply) session.messages.push({ role: "assistant", content: fullReply });
+
+    // Extraer sugerencias del reply
+    const sugMatch = fullReply.match(/\[SUGERENCIAS:\s*(.+)\]/);
+    if (sugMatch) {
+      const sugs = sugMatch[1].split("|").map(s => s.trim()).filter(Boolean);
+      res.write(`data: ${JSON.stringify({ suggestions: sugs })}\n\n`);
+    }
+
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
 
@@ -118,6 +149,13 @@ app.post("/api/chat", async (req, res) => {
     res.write(`data: ${JSON.stringify({ error: "Error de conexión." })}\n\n`);
     res.end();
   }
+});
+
+// Feedback de usuarios
+app.post("/api/feedback", (req, res) => {
+  const { sessionId, rating, comment } = req.body;
+  console.log(`Feedback - Session: ${sessionId}, Rating: ${rating}, Comment: ${comment}`);
+  res.json({ ok: true });
 });
 
 app.get("/health", (req, res) => res.json({ status: "ok" }));
