@@ -11,7 +11,7 @@ const GROQ_API_KEY = process.env.ANTHROPIC_API_KEY;
 
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
-app.use(express.json({ limit: "10kb" }));
+app.use(express.json({ limit: "20mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const sessions = new Map();
@@ -40,7 +40,6 @@ app.post("/api/session", (req, res) => {
   res.json({ sessionId });
 });
 
-// Guardar nombre/preferencias del usuario
 app.post("/api/preferences", (req, res) => {
   const { sessionId, userName, language } = req.body;
   if (!sessionId || !sessions.has(sessionId))
@@ -51,18 +50,31 @@ app.post("/api/preferences", (req, res) => {
   res.json({ ok: true });
 });
 
-const SYSTEM_PROMPT = (userName, language) => `Eres Drip IA, una inteligencia artificial amigable, inteligente y útil.
-${userName ? `El usuario se llama ${userName}. Úsalo para personalizar tus respuestas y dirigirte a él por su nombre ocasionalmente.` : ""}
+const SYSTEM_PROMPT = (userName, language) => `Eres Drip IA, una inteligencia artificial avanzada, amigable y muy capaz.
+${userName ? `El usuario se llama ${userName}. Dirígete a él por su nombre ocasionalmente.` : ""}
 Idioma principal: ${language === "en" ? "inglés" : language === "fr" ? "francés" : "español"}.
 Responde SIEMPRE en el idioma en que te habla el usuario.
-Eres directa, clara y concisa. Tienes personalidad: eres cálida pero cool, curiosa e ingeniosa.
-Escribe con ortografía perfecta. Usa tildes correctamente en español.
-Cuando no sabes algo, lo admites honestamente.
-Al final de cada respuesta, cuando sea natural, sugiere 2-3 preguntas de seguimiento relevantes en formato:
+
+CAPACIDADES ESPECIALES:
+- Matemáticas: Resuelve paso a paso con procedimiento completo. Formato:
+  Paso 1: ...
+  Paso 2: ...
+  Resultado: ✅
+- Ciencias: Explica con ejemplos del mundo real.
+- Tareas escolares: Enseña el razonamiento, no solo la respuesta.
+- Imágenes: Analiza y describe imágenes detalladamente.
+- Código: Ayuda con cualquier lenguaje de programación.
+
+ESTILO:
+- Ortografía perfecta, tildes correctas en español.
+- Claro, directo y organizado.
+- Usa emojis ocasionalmente para ser más amigable.
+
+Al final de cada respuesta sugiere 2-3 preguntas de seguimiento en formato:
 [SUGERENCIAS: pregunta1 | pregunta2 | pregunta3]`;
 
 app.post("/api/chat", async (req, res) => {
-  const { message, sessionId } = req.body;
+  const { message, sessionId, imageBase64, imageMime } = req.body;
 
   if (!message || typeof message !== "string" || message.trim().length === 0)
     return res.status(400).json({ error: "Mensaje vacío." });
@@ -75,7 +87,18 @@ app.post("/api/chat", async (req, res) => {
   if (session.messageCount >= 50)
     return res.status(429).json({ error: "Límite de 50 mensajes por sesión." });
 
-  session.messages.push({ role: "user", content: message.trim() });
+  // Construir mensaje con o sin imagen
+  let userContent;
+  if (imageBase64 && imageMime) {
+    userContent = [
+      { type: "text", text: message.trim() },
+      { type: "image_url", image_url: { url: `data:${imageMime};base64,${imageBase64}` } }
+    ];
+  } else {
+    userContent = message.trim();
+  }
+
+  session.messages.push({ role: "user", content: userContent });
   session.messageCount++;
 
   const recentMessages = session.messages.slice(-20);
@@ -92,7 +115,7 @@ app.post("/api/chat", async (req, res) => {
         "Authorization": `Bearer ${GROQ_API_KEY}`
       },
       body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: imageBase64 ? "meta-llama/llama-4-scout-17b-16e-instruct" : "llama-3.3-70b-versatile",
         max_tokens: 1024,
         stream: true,
         messages: [
@@ -135,7 +158,6 @@ app.post("/api/chat", async (req, res) => {
 
     if (fullReply) session.messages.push({ role: "assistant", content: fullReply });
 
-    // Extraer sugerencias del reply
     const sugMatch = fullReply.match(/\[SUGERENCIAS:\s*(.+)\]/);
     if (sugMatch) {
       const sugs = sugMatch[1].split("|").map(s => s.trim()).filter(Boolean);
@@ -151,10 +173,9 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-// Feedback de usuarios
 app.post("/api/feedback", (req, res) => {
   const { sessionId, rating, comment } = req.body;
-  console.log(`Feedback - Session: ${sessionId}, Rating: ${rating}, Comment: ${comment}`);
+  console.log(`Feedback - Session: ${sessionId}, Rating: ${rating}`);
   res.json({ ok: true });
 });
 
