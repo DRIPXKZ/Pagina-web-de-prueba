@@ -179,7 +179,16 @@ app.post("/api/feedback", (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/health", (req, res) => res.json({ status: "ok" }));
+// Generar imágenes con Pollinations AI (gratis, sin límites)
+app.post("/api/image", async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: "Prompt vacío." });
+
+  const encoded = encodeURIComponent(prompt);
+  const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&enhance=true`;
+
+  res.json({ imageUrl });
+});
 
 app.listen(PORT, () => {
   console.log(`Drip IA corriendo en http://localhost:${PORT}`);
