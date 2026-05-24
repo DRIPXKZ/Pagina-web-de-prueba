@@ -5,507 +5,125 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Drip IA</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg: #0a0a0f;
-      --surface: #111118;
-      --surface2: #1a1a24;
-      --border: rgba(255,255,255,0.07);
-      --accent: #7c5cfc;
-      --accent2: #c084fc;
-      --accent-glow: rgba(124,92,252,0.25);
-      --text: #f0eeff;
-      --text-muted: rgba(240,238,255,0.45);
-      --text-dim: rgba(240,238,255,0.25);
-      --green: #34d399;
-      --red: #f87171;
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-    body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(ellipse 60% 40% at 20% 0%, rgba(124,92,252,0.12) 0%, transparent 60%), radial-gradient(ellipse 40% 30% at 80% 100%, rgba(192,132,252,0.08) 0%, transparent 50%); pointer-events: none; z-index: 0; }
-
-    header { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid var(--border); background: rgba(10,10,15,0.85); backdrop-filter: blur(20px); flex-shrink: 0; }
-    .logo { display: flex; align-items: center; gap: 10px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; }
-    .logo-icon { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 16px; }
-    .header-right { display: flex; align-items: center; gap: 10px; }
-    .status-pill { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--text-muted); }
-    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .lang-select { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); border-radius: 8px; padding: 5px 8px; font-size: 12px; cursor: pointer; }
-
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 32px; max-width: 360px; width: 90%; text-align: center; }
-    .modal h2 { font-family: 'Syne', sans-serif; font-size: 22px; margin-bottom: 8px; }
-    .modal p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
-    .modal input { width: 100%; background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 10px 14px; font-size: 15px; font-family: 'DM Sans', sans-serif; margin-bottom: 12px; outline: none; }
-    .modal input:focus { border-color: rgba(124,92,252,0.4); }
-    .modal-btn { width: 100%; padding: 11px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; font-size: 15px; font-family: 'Syne', sans-serif; font-weight: 700; cursor: pointer; }
-    .modal-skip { margin-top: 10px; font-size: 13px; color: var(--text-dim); cursor: pointer; }
-    .modal-skip:hover { color: var(--text-muted); }
-
-    #messages { position: relative; z-index: 1; flex: 1; overflow-y: auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 16px; scrollbar-width: thin; scrollbar-color: var(--surface2) transparent; }
-    .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; padding: 40px 20px; animation: fadeUp 0.6s ease both; }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-    .welcome-orb { width: 72px; height: 72px; border-radius: 20px; background: linear-gradient(135deg, var(--accent), var(--accent2)); display: flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 20px; box-shadow: 0 0 40px var(--accent-glow); animation: float 4s ease-in-out infinite; }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-    .welcome h1 { font-family: 'Syne', sans-serif; font-size: clamp(24px, 5vw, 36px); font-weight: 800; margin-bottom: 10px; background: linear-gradient(135deg, #fff 30%, var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .welcome p { color: var(--text-muted); font-size: 15px; max-width: 380px; line-height: 1.6; margin-bottom: 28px; }
-    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 520px; }
-    .suggestion-chip { padding: 8px 14px; border-radius: 100px; border: 1px solid var(--border); background: var(--surface); font-size: 13px; color: var(--text-muted); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
-    .suggestion-chip:hover { border-color: rgba(124,92,252,0.4); color: var(--text); background: var(--surface2); }
-
-    .msg { display: flex; gap: 12px; max-width: 780px; width: 100%; margin: 0 auto; animation: fadeUp 0.3s ease both; }
-    .msg.user { flex-direction: row-reverse; }
-    .msg-avatar { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 2px; }
-    .msg.user .msg-avatar { background: var(--surface2); border: 1px solid var(--border); font-size: 12px; color: var(--text-muted); }
-    .msg.ai .msg-avatar { background: linear-gradient(135deg, var(--accent), var(--accent2)); }
-    .msg-content { display: flex; flex-direction: column; gap: 8px; max-width: calc(100% - 50px); }
-    .bubble { padding: 12px 16px; border-radius: 16px; font-size: 15px; line-height: 1.65; }
-    .msg.user .bubble { background: #1e1630; border: 1px solid rgba(124,92,252,0.2); border-top-right-radius: 4px; }
-    .msg.ai .bubble { background: #13131e; border: 1px solid var(--border); border-top-left-radius: 4px; }
-
-    .img-preview { max-width: 200px; max-height: 160px; border-radius: 10px; border: 1px solid var(--border); object-fit: cover; }
-    .img-preview-pending { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface2); border: 1px solid rgba(124,92,252,0.3); border-radius: 10px; font-size: 13px; color: var(--accent2); margin-bottom: 4px; }
-    .img-preview-pending button { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; }
-
-    .quick-replies { display: flex; flex-wrap: wrap; gap: 6px; }
-    .quick-reply-btn { padding: 6px 12px; border-radius: 100px; border: 1px solid rgba(124,92,252,0.3); background: rgba(124,92,252,0.08); font-size: 13px; color: var(--accent2); cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; }
-    .quick-reply-btn:hover { background: rgba(124,92,252,0.2); border-color: var(--accent); color: white; }
-
-    .feedback-row { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
-    .feedback-label { font-size: 12px; color: var(--text-dim); }
-    .feedback-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 3px 8px; font-size: 13px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
-    .feedback-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .feedback-btn.active { background: rgba(124,92,252,0.15); border-color: var(--accent); color: var(--accent); }
-
-    .typing-dots { display: flex; gap: 5px; align-items: center; padding: 4px 0; }
-    .typing-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: typingBounce 1.2s infinite ease-in-out; }
-    .typing-dots span:nth-child(2){animation-delay:0.15s}
-    .typing-dots span:nth-child(3){animation-delay:0.3s}
-    @keyframes typingBounce { 0%,60%,100%{transform:translateY(0);opacity:0.4} 30%{transform:translateY(-6px);opacity:1} }
-
-    .img-generated { max-width: 100%; border-radius: 12px; border: 1px solid var(--border); margin-top: 8px; }
-    .img-loading { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 14px; padding: 8px 0; }
-    .img-loading span { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: typingBounce 1.2s infinite ease-in-out; }
-    .img-loading span:nth-child(2){animation-delay:0.15s}
-    .img-loading span:nth-child(3){animation-delay:0.3s}
-    .img-download { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 6px 14px; border-radius: 100px; border: 1px solid rgba(124,92,252,0.3); background: rgba(124,92,252,0.08); font-size: 13px; color: var(--accent2); cursor: pointer; text-decoration: none; }
-    .img-download:hover { background: rgba(124,92,252,0.2); color: white; }
-
-    .input-area { position: relative; z-index: 10; padding: 16px; background: rgba(10,10,15,0.9); backdrop-filter: blur(20px); border-top: 1px solid var(--border); flex-shrink: 0; }
-    .input-top { max-width: 780px; margin: 0 auto 8px; }
-    .input-wrapper { max-width: 780px; margin: 0 auto; display: flex; align-items: flex-end; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 10px 14px; transition: border-color 0.2s; }
-    .input-wrapper:focus-within { border-color: rgba(124,92,252,0.4); box-shadow: 0 0 0 3px var(--accent-glow); }
-    #chat-input { flex: 1; background: none; border: none; outline: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; line-height: 1.5; resize: none; max-height: 140px; min-height: 24px; padding: 0; }
-    #chat-input::placeholder { color: var(--text-dim); }
-    #img-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; font-size: 16px; flex-shrink: 0; transition: all 0.2s; }
-    #img-btn:hover { border-color: rgba(124,92,252,0.4); color: var(--accent2); }
-    #gen-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text-muted); cursor: pointer; font-size: 16px; flex-shrink: 0; transition: all 0.2s; }
-    #gen-btn:hover { border-color: rgba(124,92,252,0.4); color: var(--accent2); }
-    #send-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; font-size: 15px; }
-    #send-btn:hover:not(:disabled){transform:scale(1.05);opacity:0.9}
-    #send-btn:disabled{opacity:0.35;cursor:not-allowed}
-    .input-meta { display: flex; justify-content: space-between; max-width: 780px; margin: 8px auto 0; font-size: 11px; color: var(--text-dim); }
-  </style>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-
-<div class="modal-overlay" id="modal">
-  <div class="modal">
-    <div style="font-size:40px;margin-bottom:12px;">💧</div>
-    <h2>Hola, soy Drip IA</h2>
-    <p>¿Cómo te llamas? Así puedo personalizar tu experiencia.</p>
-    <input type="text" id="name-input" placeholder="Tu nombre..." maxlength="30">
-    <button class="modal-btn" onclick="saveName()">Comenzar ✦</button>
-    <div class="modal-skip" onclick="skipName()">Continuar sin nombre</div>
-  </div>
-</div>
-
-<header>
-  <div class="logo">
-    <div class="logo-icon">💧</div>
-    Drip IA
-  </div>
-  <div class="header-right">
-    <select class="lang-select" id="lang-select" onchange="changeLang(this.value)">
-      <option value="es">🇪🇸 Español</option>
-      <option value="en">🇺🇸 English</option>
-      <option value="fr">🇫🇷 Français</option>
-    </select>
-    <div class="status-pill">
-      <div class="status-dot"></div>
-      <span id="status-text">En línea</span>
+  <!-- Modal de bienvenida -->
+  <div class="modal-overlay" id="modal" role="dialog" aria-labelledby="modal-title">
+    <div class="modal">
+      <div style="font-size:40px;margin-bottom:12px;">💧</div>
+      <h2 id="modal-title">Hola, soy Drip IA</h2>
+      <p>¿Cómo te llamas? Así puedo personalizar tu experiencia.</p>
+      <input type="text" id="name-input" placeholder="Tu nombre..." maxlength="30" aria-label="Nombre de usuario">
+      <button class="modal-btn" id="start-btn">Comenzar ✦</button>
+      <div class="modal-skip" id="skip-btn">Continuar sin nombre</div>
     </div>
   </div>
-</header>
 
-<div id="messages">
-  <div class="welcome" id="welcome">
-    <div class="welcome-orb">💧</div>
-    <h1 id="welcome-title">Tu asistente inteligente</h1>
-    <p id="welcome-sub">Pregúntame cualquier cosa. Estoy aquí para ayudarte.</p>
-    <div class="suggestions">
-      <button class="suggestion-chip" onclick="useSuggestion(this)">🧮 Resuelve: 2x + 5 = 15</button>
-      <button class="suggestion-chip" onclick="useSuggestion(this)">🔬 Explícame la fotosíntesis</button>
-      <button class="suggestion-chip" onclick="useSuggestion(this)">📝 Ayúdame con mi tarea</button>
-      <button class="suggestion-chip" onclick="useSuggestion(this)">🎨 Genera una imagen de un dragón</button>
-      <button class="suggestion-chip" onclick="useSuggestion(this)">💻 Ayúdame con código</button>
+  <header>
+    <div class="logo">
+      <div class="logo-icon">💧</div>
+      Drip IA
+    </div>
+    <div class="header-right">
+      <select class="lang-select" id="lang-select" aria-label="Seleccionar idioma">
+        <option value="es">🇪🇸 Español</option>
+        <option value="en">🇺🇸 English</option>
+        <option value="fr">🇫🇷 Français</option>
+      </select>
+      <div class="status-pill">
+        <div class="status-dot"></div>
+        <span id="status-text">En línea</span>
+      </div>
+    </div>
+  </header>
+
+  <div id="messages">
+    <div class="welcome" id="welcome">
+      <div class="welcome-orb">💧</div>
+      <h1 id="welcome-title">Tu asistente inteligente</h1>
+      <p id="welcome-sub">Pregúntame cualquier cosa. Estoy aquí para ayudarte.</p>
+      <div class="suggestions">
+        <button class="suggestion-chip" data-suggestion="🧮 Resuelve: 2x + 5 = 15">🧮 Resuelve: 2x + 5 = 15</button>
+        <button class="suggestion-chip" data-suggestion="🔬 Explícame la fotosíntesis">🔬 Explícame la fotosíntesis</button>
+        <button class="suggestion-chip" data-suggestion="📝 Ayúdame con mi tarea">📝 Ayúdame con mi tarea</button>
+        <button class="suggestion-chip" data-suggestion="🎨 Genera una imagen de un dragón">🎨 Genera una imagen de un dragón</button>
+        <button class="suggestion-chip" data-suggestion="💻 Ayúdame con código">💻 Ayúdame con código</button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="input-area">
-  <div class="input-top" id="img-preview-container"></div>
-  <div class="input-wrapper">
-    <input type="file" id="img-input" accept="image/*" style="display:none" onchange="previewImage(this)">
-    <button type="button" id="img-btn" onclick="document.getElementById('img-input').click()" title="Subir imagen">🖼️</button>
-    <button type="button" id="gen-btn" onclick="triggerImageGen()" title="Generar imagen con IA">✨</button>
-    <textarea id="chat-input" placeholder="Escribe tu mensaje o 'genera una imagen de...'" rows="1" maxlength="2000"></textarea>
-    <button id="send-btn">↑</button>
+  <div class="input-area">
+    <div class="input-top" id="img-preview-container"></div>
+    <div class="input-wrapper">
+      <input type="file" id="img-input" accept="image/*" style="display:none">
+      <button type="button" id="img-btn" aria-label="Subir imagen">🖼️</button>
+      <button type="button" id="gen-btn" aria-label="Generar imagen con IA">✨</button>
+      <textarea id="chat-input" placeholder="Escribe tu mensaje o 'genera una imagen de...'" rows="1" maxlength="2000"></textarea>
+      <button id="send-btn" aria-label="Enviar mensaje">↑</button>
+    </div>
+    <div class="input-meta">
+      <span>Enter para enviar · ✨ para generar imagen · 🖼️ para subir imagen</span>
+      <span id="char-count">0 / 2000</span>
+    </div>
   </div>
-  <div class="input-meta">
-    <span>Enter para enviar · ✨ para generar imagen · 🖼️ para subir imagen</span>
-    <span id="char-count">0 / 2000</span>
-  </div>
-</div>
 
-<script>
-  const messagesEl = document.getElementById('messages');
-  const inputEl = document.getElementById('chat-input');
-  const sendBtn = document.getElementById('send-btn');
-  const charCount = document.getElementById('char-count');
-  let sessionId = null;
-  let isStreaming = false;
-  let userName = null;
-  let currentLang = 'es';
-  let pendingImage = null;
-  let pendingMime = null;
-
-  async function initSession() {
-    try {
-      const res = await fetch('/api/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      const data = await res.json();
-      sessionId = data.sessionId;
-    } catch(e) { console.error('Error creando sesion:', e); }
-  }
-
-  initSession();
-
-  document.getElementById('name-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') saveName();
-  });
-
-  async function saveName() {
-    const name = document.getElementById('name-input').value.trim();
-    if (name) {
-      userName = name;
-      await savePreferences();
-      updateWelcome();
-    }
-    document.getElementById('modal').style.display = 'none';
-  }
-
-  function skipName() {
-    document.getElementById('modal').style.display = 'none';
-  }
-
-  async function savePreferences() {
-    if (!sessionId) return;
-    await fetch('/api/preferences', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, userName, language: currentLang })
-    });
-  }
-
-  function updateWelcome() {
-    if (userName) {
-      document.getElementById('welcome-title').textContent = `Hola, ${userName} 👋`;
-    }
-  }
-
-  async function changeLang(lang) {
-    currentLang = lang;
-    const texts = {
-      es: { status: 'En línea', placeholder: 'Escribe tu mensaje o "genera una imagen de..."' },
-      en: { status: 'Online', placeholder: 'Type your message or "generate an image of..."' },
-      fr: { status: 'En ligne', placeholder: 'Écrivez votre message ou "génère une image de..."' }
-    };
-    const t = texts[lang];
-    document.getElementById('status-text').textContent = t.status;
-    inputEl.placeholder = t.placeholder;
-    await savePreferences();
-  }
-
-  function previewImage(input) {
-    const file = input.files[0];
-    if (!file) return;
-    pendingMime = file.type;
-    const reader = new FileReader();
-    reader.onload = e => {
-      pendingImage = e.target.result.split(',')[1];
-      const container = document.getElementById('img-preview-container');
-      container.innerHTML = `
-        <div class="img-preview-pending">
-          🖼️ <span>${file.name}</span>
-          <button onclick="clearImage()" title="Quitar imagen">✕</button>
-        </div>`;
-      document.getElementById('img-btn').textContent = '✅';
-      document.getElementById('img-btn').style.borderColor = 'rgba(124,92,252,0.4)';
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function clearImage() {
-    pendingImage = null;
-    pendingMime = null;
-    document.getElementById('img-preview-container').innerHTML = '';
-    document.getElementById('img-btn').textContent = '🖼️';
-    document.getElementById('img-btn').style.borderColor = 'var(--border)';
-    document.getElementById('img-input').value = '';
-  }
-
-  function triggerImageGen() {
-    const text = inputEl.value.trim();
-    if (text) {
-      generateImage(text);
-      inputEl.value = '';
-      inputEl.style.height = 'auto';
-      charCount.textContent = '0 / 2000';
-    } else {
-      inputEl.placeholder = '✨ Describe la imagen que quieres generar...';
-      inputEl.focus();
-    }
-  }
-
-  async function generateImage(prompt) {
-    document.getElementById('welcome')?.remove();
-    appendMessage('user', '✨ ' + prompt);
-    const aiEl = appendAiMessage();
-    const bubbleEl = aiEl.querySelector('.bubble');
-    bubbleEl.innerHTML = '<div class="img-loading"><span></span><span></span><span></span> Generando imagen...</div>';
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-
-    try {
-      const res = await fetch('/api/image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-      const data = await res.json();
-      if (data.imageUrl) {
-        bubbleEl.innerHTML = '';
-        const img = document.createElement('img');
-        img.className = 'img-generated';
-        img.alt = prompt;
-        img.onload = () => { messagesEl.scrollTop = messagesEl.scrollHeight; };
-        img.onerror = () => { bubbleEl.textContent = 'Error cargando imagen. Intenta de nuevo.'; bubbleEl.style.color = 'var(--red)'; };
-        img.src = data.imageUrl;
-        const link = document.createElement('a');
-        link.href = data.imageUrl;
-        link.target = '_blank';
-        link.className = 'img-download';
-        link.textContent = '⬇️ Abrir imagen';
-        bubbleEl.appendChild(img);
-        bubbleEl.appendChild(link);
-      }
-    } catch(e) {
-      bubbleEl.textContent = 'Error generando imagen.';
-      bubbleEl.style.color = 'var(--red)';
-    }
-  }
-
-  inputEl.addEventListener('input', () => {
-    inputEl.style.height = 'auto';
-    inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + 'px';
-    charCount.textContent = `${inputEl.value.length} / 2000`;
-  });
-
-  inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-  });
-
-  sendBtn.addEventListener('click', sendMessage);
-
-  function useSuggestion(btn) {
-    const text = btn.textContent.replace(/^[^\s]+\s/, '');
-    if (text.toLowerCase().includes('genera una imagen')) {
-      generateImage(text.replace(/genera una imagen de /i, ''));
-    } else {
-      inputEl.value = text;
-      inputEl.dispatchEvent(new Event('input'));
-      sendMessage();
-    }
-  }
-
-  async function sendMessage(text) {
-    text = text || inputEl.value.trim();
-    if (!text || isStreaming) return;
-    if (!sessionId) await initSession();
-
-    // Auto-detectar si quiere generar imagen
-    const genKeywords = ['genera una imagen', 'generate an image', 'génère une image', 'crea una imagen', 'dibuja', 'draw me'];
-    if (genKeywords.some(k => text.toLowerCase().includes(k))) {
-      inputEl.value = '';
-      inputEl.style.height = 'auto';
-      charCount.textContent = '0 / 2000';
-      const prompt = text.replace(/genera una imagen de |crea una imagen de |dibuja |generate an image of |génère une image de /gi, '');
-      generateImage(prompt);
-      return;
-    }
-
-    document.getElementById('welcome')?.remove();
-    isStreaming = true;
-    sendBtn.disabled = true;
-    inputEl.value = '';
-    inputEl.style.height = 'auto';
-    charCount.textContent = '0 / 2000';
-
-    const imgToSend = pendingImage;
-    const mimeToSend = pendingMime;
-    clearImage();
-
-    const userEl = appendMessage('user', text);
-    if (imgToSend) {
-      const img = document.createElement('img');
-      img.src = `data:${mimeToSend};base64,${imgToSend}`;
-      img.className = 'img-preview';
-      userEl.querySelector('.msg-content').prepend(img);
-    }
-
-    const aiEl = appendAiMessage();
-    const bubbleEl = aiEl.querySelector('.bubble');
-    bubbleEl.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text, sessionId, imageBase64: imgToSend, imageMime: mimeToSend })
-      });
-
-      if (!res.ok) {
-        const err = await res.json();
-        bubbleEl.textContent = err.error || 'Error inesperado.';
-        bubbleEl.style.color = 'var(--red)';
-        isStreaming = false; sendBtn.disabled = false; return;
-      }
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let fullText = '';
-      let firstChunk = true;
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          try {
-            const data = JSON.parse(line.slice(6));
-            if (data.error) { bubbleEl.textContent = data.error; bubbleEl.style.color = 'var(--red)'; break; }
-            if (data.chunk) {
-              if (firstChunk) { bubbleEl.innerHTML = ''; firstChunk = false; }
-              fullText += data.chunk;
-              bubbleEl.textContent = fullText.replace(/\[SUGERENCIAS:.*?\]/g, '').trim();
-              messagesEl.scrollTop = messagesEl.scrollHeight;
-            }
-            if (data.suggestions) addQuickReplies(aiEl, data.suggestions);
-          } catch {}
-        }
-      }
-
-      addFeedback(aiEl);
-
-    } catch(e) {
-      bubbleEl.textContent = 'Error de conexión.';
-      bubbleEl.style.color = 'var(--red)';
-    }
-
-    isStreaming = false;
-    sendBtn.disabled = false;
-    inputEl.focus();
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function appendMessage(role, text) {
-    const div = document.createElement('div');
-    div.className = `msg ${role}`;
-    const avatar = document.createElement('div');
-    avatar.className = 'msg-avatar';
-    avatar.textContent = role === 'user' ? '👤' : '💧';
-    const content = document.createElement('div');
-    content.className = 'msg-content';
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    bubble.textContent = text;
-    content.appendChild(bubble);
-    div.appendChild(avatar);
-    div.appendChild(content);
-    messagesEl.appendChild(div);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-    return div;
-  }
-
-  function appendAiMessage() {
-    const div = document.createElement('div');
-    div.className = 'msg ai';
-    const avatar = document.createElement('div');
-    avatar.className = 'msg-avatar';
-    avatar.textContent = '💧';
-    const content = document.createElement('div');
-    content.className = 'msg-content';
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble';
-    content.appendChild(bubble);
-    div.appendChild(avatar);
-    div.appendChild(content);
-    messagesEl.appendChild(div);
-    return div;
-  }
-
-  function addQuickReplies(msgEl, suggestions) {
-    const content = msgEl.querySelector('.msg-content');
-    const row = document.createElement('div');
-    row.className = 'quick-replies';
-    suggestions.forEach(s => {
-      const btn = document.createElement('button');
-      btn.className = 'quick-reply-btn';
-      btn.textContent = s;
-      btn.onclick = () => { row.remove(); sendMessage(s); };
-      row.appendChild(btn);
-    });
-    content.appendChild(row);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
-
-  function addFeedback(msgEl) {
-    const content = msgEl.querySelector('.msg-content');
-    const row = document.createElement('div');
-    row.className = 'feedback-row';
-    row.innerHTML = '<span class="feedback-label">¿Útil?</span>';
-    ['👍', '👎'].forEach(emoji => {
-      const btn = document.createElement('button');
-      btn.className = 'feedback-btn';
-      btn.textContent = emoji;
-      btn.onclick = async () => {
-        row.querySelectorAll('.feedback-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        await fetch('/api/feedback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sessionId, rating: emoji })
-        });
-      };
-      row.appendChild(btn);
-    });
-    content.appendChild(row);
-  }
-</script>
+  <script src="main.js" defer></script>
 </body>
 </html>
+
+
+styles.css
+
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #1a1a24;
+  --border: rgba(255,255,255,0.07);
+  --accent: #7c5cfc;
+  --accent2: #c084fc;
+  --accent-glow: rgba(124,92,252,0.25);
+  --text: #f0eeff;
+  --text-muted: rgba(240,238,255,0.45);
+  --text-dim: rgba(240,238,255,0.25);
+  --green: #34d399;
+  --red: #f87171;
+}
+
+/* ... (todo el CSS que tenías) */
+
+
+main.js
+
+// Variables
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('chat-input');
+const sendBtn = document.getElementById('send-btn');
+let sessionId = null;
+let isStreaming = false;
+let userName = null;
+let currentLang = 'es';
+let pendingImage = null;
+let pendingMime = null;
+
+// Inicialización
+document.addEventListener('DOMContentLoaded', () => {
+  initSession();
+  
+  // Event listeners
+  document.getElementById('start-btn').addEventListener('click', saveName);
+  document.getElementById('skip-btn').addEventListener('click', skipName);
+  document.getElementById('img-btn').addEventListener('click', () => document.getElementById('img-input').click());
+  document.getElementById('gen-btn').addEventListener('click', triggerImageGen);
+  
+  // Sugerencias
+  document.querySelectorAll('.suggestion-chip').forEach(btn => {
+    btn.addEventListener('click', () => useSuggestion(btn));
+  });
+});
+
+// Funciones...
+async function initSession() { /* ... */ }
+async function saveName() { /* ... */ }
+function skipName() { /* ... */ }
+// ... (resto de tus funciones JS)
