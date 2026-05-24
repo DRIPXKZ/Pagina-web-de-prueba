@@ -87,7 +87,6 @@ app.post("/api/chat", async (req, res) => {
   if (session.messageCount >= 50)
     return res.status(429).json({ error: "Límite de 50 mensajes por sesión." });
 
-  // Construir mensaje con o sin imagen
   let userContent;
   if (imageBase64 && imageMime) {
     userContent = [
@@ -173,13 +172,6 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-app.post("/api/feedback", (req, res) => {
-  const { sessionId, rating, comment } = req.body;
-  console.log(`Feedback - Session: ${sessionId}, Rating: ${rating}`);
-  res.json({ ok: true });
-});
-
-// Generar imágenes con Pollinations AI (gratis, sin límites)
 app.post("/api/image", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "Prompt vacío." });
@@ -190,14 +182,14 @@ app.post("/api/image", async (req, res) => {
 
   res.json({ imageUrl });
 });
-  const { prompt } = req.body;
-  if (!prompt) return res.status(400).json({ error: "Prompt vacío." });
 
-  const encoded = encodeURIComponent(prompt);
-  const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&enhance=true`;
-
-  res.json({ imageUrl });
+app.post("/api/feedback", (req, res) => {
+  const { sessionId, rating } = req.body;
+  console.log(`Feedback - Session: ${sessionId}, Rating: ${rating}`);
+  res.json({ ok: true });
 });
+
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 app.listen(PORT, () => {
   console.log(`Drip IA corriendo en http://localhost:${PORT}`);
