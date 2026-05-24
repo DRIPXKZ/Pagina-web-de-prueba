@@ -184,6 +184,15 @@ app.post("/api/image", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "Prompt vacío." });
 
+  const enhanced = `${prompt}, ultra realistic, high quality, 4k, detailed, professional photography`;
+  const encoded = encodeURIComponent(enhanced);
+  const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&enhance=true&seed=${Math.floor(Math.random()*99999)}`;
+
+  res.json({ imageUrl });
+});
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: "Prompt vacío." });
+
   const encoded = encodeURIComponent(prompt);
   const imageUrl = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&enhance=true`;
 
